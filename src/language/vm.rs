@@ -37,11 +37,20 @@ impl VM {
         vm
     }
 
-    pub fn interpret(&mut self, chunk: Chunk) -> InterpreterResult {
-        self.chunk = chunk;
-        self.ip = self.chunk.code.as_mut_ptr();
-        self.run()
+    pub fn interpret(&mut self, source: &str) -> InterpreterResult {
+        self.compile(source);
+        InterpreterResult::Ok
     }
+
+    pub fn compile(&mut self, source: &str) {
+
+    }
+
+    // pub fn interpret(&mut self, chunk: Chunk) -> InterpreterResult {
+    //     self.chunk = chunk;
+    //     self.ip = self.chunk.code.as_mut_ptr();
+    //     self.run()
+    // }
 
     pub fn reset_stack(&mut self) {
         self.stack_top = self.stack.as_mut_ptr();

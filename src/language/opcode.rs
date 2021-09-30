@@ -1,5 +1,3 @@
-use crate::language::opcode::OpCode::OpAdd;
-
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum OpCode {
     OpConstant,
