@@ -4,7 +4,7 @@ use std::env;
 use std::io::*;
 use std::fs::*;
 use std::process::exit;
-use crate::language::vm::InterpreterResult;
+use text_io::read;
 
 fn main() {
     let mut vm = language::vm::VM::new();
@@ -22,26 +22,26 @@ fn main() {
 }
 
 fn repl(vm: &mut language::vm::VM) {
-    println!("running repl");
-    return
-    // let mut line = String::with_capacity(1024);
-    //
-    // loop {
-    //     print!("(> ");
-    //
-    //     match stdin().read_line(&mut line) {
-    //         Ok(_) => {
-    //             vm.interpret(&line);
-    //         }
-    //         Err(_) => {
-    //             println!();
-    //             break;
-    //         }
-    //     }
-    // }
+    println!("Running REPL");
+    loop {
+        print!(">> ");
+        std::io::stdout().flush().expect("flush failed!");
+
+        let mut line: String = read!("{}\n");
+
+        match line.as_ref() {
+            "exit" => {
+                println!("Exiting REPL");
+                break;
+            }
+            _ => {
+                vm.interpret(&mut line);
+            }
+        }
+    }
 }
 
-fn run_file(vm: &mut language::vm::VM, path: &str) {
+fn run_file(vm: &mut language::vm::VM, path: &String) {
     let file = File::open(path);
 
     let mut source = String::new();
@@ -61,12 +61,12 @@ fn run_file(vm: &mut language::vm::VM, path: &str) {
         }
     };
 
-    let result = vm.interpret(&source);
+    let result = vm.interpret(&mut source);
 
     match result {
-        InterpreterResult::Ok => {}
-        InterpreterResult::CompileError => { exit(65); }
-        InterpreterResult::RuntimeError => { exit(70); }
+        language::vm::InterpreterResult::Ok => {}
+        language::vm::InterpreterResult::CompileError => { exit(65); }
+        language::vm::InterpreterResult::RuntimeError => { exit(70); }
     }
 }
 

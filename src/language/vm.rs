@@ -3,6 +3,7 @@ use super::chunk::*;
 use super::opcode::*;
 use super::value::*;
 use super::debug::*;
+use super::scanner::*;
 use rawpointer::PointerExt;
 
 const STACK_LIMIT: usize = 256;
@@ -37,13 +38,17 @@ impl VM {
         vm
     }
 
-    pub fn interpret(&mut self, source: &str) -> InterpreterResult {
+    pub fn interpret(&mut self, source: &mut String) -> InterpreterResult {
         self.compile(source);
         InterpreterResult::Ok
     }
 
-    pub fn compile(&mut self, source: &str) {
-
+    pub fn compile(&mut self, source: &mut String) {
+        let scanner = Scanner::new(source);
+        let mut line = -1;
+        loop {
+            
+        }
     }
 
     // pub fn interpret(&mut self, chunk: Chunk) -> InterpreterResult {
