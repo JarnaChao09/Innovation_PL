@@ -1,4 +1,5 @@
 use rawpointer::PointerExt;
+use libc::memcmp;
 use super::token::*;
 
 pub struct Scanner {
@@ -79,7 +80,7 @@ impl Scanner {
                     self.make_token(token)
                 },
                 '"' => self.make_string(),
-                x => self.error_token(&mut String::from("Unexpected character " + x + "."))
+                _ => self.error_token(&mut String::from("Unexpected character."))
             }
         }
     }
@@ -117,7 +118,7 @@ impl Scanner {
             Token::new(
                 token,
                 self.start,
-                (*self.current as u8 - *self.start as u8) as usize,
+                (*self.current as i32 - *self.start as i32) as usize,
                 self.line,
             )
         }
@@ -178,7 +179,7 @@ impl Scanner {
 
     pub fn make_number(&mut self) -> Token {
         while self.peek().is_numeric() {
-            self.peek()
+            self.peek();
         }
 
         if self.peek() == '.' && self.peek_next().is_numeric() {
@@ -194,13 +195,62 @@ impl Scanner {
 
     pub fn make_identifier(&mut self) -> Token {
         while self.peek().is_alphabetic() || self.peek().is_numeric() {
-            self.advance()
+            self.advance();
         }
 
-        self.make_token(self.identifier_type())
+        let id_type = self.identifier_type();
+        self.make_token(id_type)
     }
 
-    pub fn identifier_type(&self) -> TokenType {
-        TokenType::Identifier
+    pub fn identifier_type(&mut self) -> TokenType {
+        unsafe {
+            match *self.start {
+                'c' => self.match_keyword(1, &mut String::from("lass"), TokenType::Class),
+                'e' => self.match_keyword(1, &mut String::from("lse"), TokenType::Else),
+                'i' => self.match_keyword(1, &mut String::from("f"), TokenType::If),
+                'n' => self.match_keyword(1, &mut String::from("ull"), TokenType::Null),
+                'r' => self.match_keyword(1, &mut String::from("eturn"), TokenType::Return),
+                's' => self.match_keyword(1, &mut String::from("uper"), TokenType::Super),
+                'w' => self.match_keyword(1, &mut String::from("hile"), TokenType::While),
+                'f' => {
+                    if (self.current as i32) - (self.start as i32) > 1 {
+                        match *self.start.add(1) {
+                            'a' => self.match_keyword(2, &mut String::from("lse"), TokenType::False),
+                            'u' => self.match_keyword(2, &mut String::from("n"), TokenType::Fun),
+                            'o' => self.match_keyword(2, &mut String::from("r"), TokenType::For),
+                            _ => TokenType::Identifier
+                        }
+                    } else {
+                        TokenType::Identifier
+                    }
+                }
+                'v' => {
+                    if (self.current as i32) - (self.start as i32) > 2 {
+                        match *self.start.add(1) {
+                            'a' => {
+                                match *self.start.add(2) {
+                                    'r' => TokenType::Var,
+                                    'l' => TokenType::Val,
+                                    _ => TokenType::Identifier
+                                }
+                            }
+                            _ => TokenType::Identifier
+                        }
+                    } else {
+                        TokenType::Identifier
+                    }
+                }
+                _ => TokenType::Identifier
+            }
+        }
+    }
+
+    pub fn match_keyword(&self, start: usize, rest: &mut String, return_type: TokenType) -> TokenType {
+        unsafe {
+            if ((self.current as i32) - (self.start as i32)) as usize == start + rest.len() && memcmp(((self.start as usize) + start) as *mut u8 as *const libc::c_void, rest.as_mut_ptr() as *const libc::c_void, rest.len()) == 0 {
+                return return_type
+            }
+            return TokenType::Identifier
+        }
     }
 }

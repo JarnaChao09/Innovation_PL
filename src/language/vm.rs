@@ -4,6 +4,7 @@ use super::opcode::*;
 use super::value::*;
 use super::debug::*;
 use super::scanner::*;
+use super::token::*;
 use rawpointer::PointerExt;
 
 const STACK_LIMIT: usize = 256;
@@ -44,10 +45,20 @@ impl VM {
     }
 
     pub fn compile(&mut self, source: &mut String) {
-        let scanner = Scanner::new(source);
+        let mut scanner = Scanner::new(source);
         let mut line = -1;
         loop {
-            
+            let token: Token = scanner.scan_token();
+            if token.line != line {
+                print!("{:4}", token.line);
+                line = token.line;
+            } else {
+                print!("   | ");
+            }
+
+            unsafe {
+                println!("{:?} '{}'", token.token_type, String::from_raw_parts(token.start as *mut u8, token.length, token.length + 1));
+            }
         }
     }
 
