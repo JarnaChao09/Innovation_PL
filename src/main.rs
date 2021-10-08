@@ -35,7 +35,7 @@ fn repl(vm: &mut language::vm::VM) {
                 break;
             }
             _ => {
-                vm.interpret(&mut line);
+                vm.interpret(line);
             }
         }
     }
@@ -61,7 +61,7 @@ fn run_file(vm: &mut language::vm::VM, path: &String) {
         }
     };
 
-    let result = vm.interpret(&mut source);
+    let result = vm.interpret(source);
 
     match result {
         language::vm::InterpreterResult::Ok => {}

@@ -39,25 +39,26 @@ impl VM {
         vm
     }
 
-    pub fn interpret(&mut self, source: &mut String) -> InterpreterResult {
+    pub fn interpret(&mut self, source: String) -> InterpreterResult {
         self.compile(source);
         InterpreterResult::Ok
     }
 
-    pub fn compile(&mut self, source: &mut String) {
+    pub fn compile(&mut self, source: String) {
         let mut scanner = Scanner::new(source);
         let mut line = -1;
         loop {
             let token: Token = scanner.scan_token();
             if token.line != line {
-                print!("{:4}", token.line);
+                print!("{:4} ", token.line);
                 line = token.line;
             } else {
                 print!("   | ");
             }
+            println!("{:?} '{}'", token.token_type, token.lexme);
 
-            unsafe {
-                println!("{:?} '{}'", token.token_type, String::from_raw_parts(token.start as *mut u8, token.length, token.length + 1));
+            if token.token_type == TokenType::EOF {
+                break;
             }
         }
     }

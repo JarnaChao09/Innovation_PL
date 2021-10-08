@@ -1,18 +1,19 @@
 use rawpointer::PointerExt;
-use libc::memcmp;
 use super::token::*;
 
 pub struct Scanner {
-    start: *mut char,
-    current: *mut char,
+    source: String,
+    start_index: usize,
+    current_index: usize,
     line: i32,
 }
 
 impl Scanner {
-    pub fn new(source: &mut String) -> Scanner {
+    pub fn new(source: String) -> Scanner {
         Scanner {
-            start: source.as_mut_ptr() as *mut char,
-            current: source.as_mut_ptr() as *mut char,
+            source,
+            start_index: 0,
+            current_index: 0,
             line: 1
         }
     }
@@ -20,9 +21,9 @@ impl Scanner {
     pub fn scan_token(&mut self) -> Token {
         unsafe {
             self.skip_whitespace();
-            *self.start = *self.current;
+            self.start_index = self.current_index;
             if self.is_at_end() {
-                return Token::new(TokenType::EOF, self.start, (*self.current as u8 - *self.start as u8) as usize, self.line);
+                return Token::new(TokenType::EOF, String::from(""), self.line);
             }
 
             let char = self.advance();
@@ -80,7 +81,11 @@ impl Scanner {
                     self.make_token(token)
                 },
                 '"' => self.make_string(),
-                _ => self.error_token(&mut String::from("Unexpected character."))
+                err_char => {
+                    let mut msg = String::from("Unexpected character: ");
+                    msg.push(err_char);
+                    self.error_token(msg)
+                }
             }
         }
     }
@@ -104,48 +109,43 @@ impl Scanner {
         }
     }
 
-    pub fn error_token(&self, message: &mut String) -> Token {
+    pub fn error_token(&self, message: String) -> Token {
         Token::new(
             TokenType::Error,
-            message.as_mut_ptr() as *const char,
-            message.len(),
+            message,
             self.line
         )
     }
 
     pub fn make_token(&self, token: TokenType) -> Token {
-        unsafe {
-            Token::new(
-                token,
-                self.start,
-                (*self.current as i32 - *self.start as i32) as usize,
-                self.line,
-            )
-        }
+        Token::new(
+            token,
+            self.source[self.start_index..self.current_index].parse().unwrap(),
+            self.line,
+        )
     }
 
     pub fn is_at_end(&self) -> bool {
-        unsafe { *self.current == (0 as char) }
+        self.current_index == self.source.len()
     }
 
     pub fn advance(&mut self) -> char {
-        unsafe { *self.current.post_inc() }
+        self.current_index += 1;
+        self.source.chars().nth(self.current_index - 1).unwrap()
     }
 
     pub fn match_char(&mut self, expected: char) -> bool {
-        unsafe {
-            if self.is_at_end() {
-                return false;
-            }
-
-            if *self.current != expected {
-                return false;
-            }
-
-            self.current.post_inc();
-
-            return true;
+        if self.is_at_end() {
+            return false;
         }
+
+        if self.source.chars().nth(self.current_index).unwrap() != expected {
+            return false;
+        }
+
+        self.current_index += 1;
+
+        return true;
     }
 
     pub fn peek(&self) -> char {
@@ -157,7 +157,7 @@ impl Scanner {
     }
 
     pub fn peek_n(&self, n: usize) -> char {
-        unsafe { *self.current.add(n) }
+        self.source.chars().nth(self.current_index + n).unwrap_or_default()
     }
 
     pub fn make_string(&mut self) -> Token {
@@ -169,7 +169,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            return self.error_token(&mut String::from("Unterminated String"))
+            return self.error_token(String::from("Unterminated String"))
         }
 
         self.advance();
@@ -179,7 +179,7 @@ impl Scanner {
 
     pub fn make_number(&mut self) -> Token {
         while self.peek().is_numeric() {
-            self.peek();
+            self.advance();
         }
 
         if self.peek() == '.' && self.peek_next().is_numeric() {
@@ -204,20 +204,20 @@ impl Scanner {
 
     pub fn identifier_type(&mut self) -> TokenType {
         unsafe {
-            match *self.start {
-                'c' => self.match_keyword(1, &mut String::from("lass"), TokenType::Class),
-                'e' => self.match_keyword(1, &mut String::from("lse"), TokenType::Else),
-                'i' => self.match_keyword(1, &mut String::from("f"), TokenType::If),
-                'n' => self.match_keyword(1, &mut String::from("ull"), TokenType::Null),
-                'r' => self.match_keyword(1, &mut String::from("eturn"), TokenType::Return),
-                's' => self.match_keyword(1, &mut String::from("uper"), TokenType::Super),
-                'w' => self.match_keyword(1, &mut String::from("hile"), TokenType::While),
+            match self.source.chars().nth(self.start_index).unwrap() {
+                'c' => self.match_keyword(1, String::from("lass"), TokenType::Class),
+                'e' => self.match_keyword(1, String::from("lse"), TokenType::Else),
+                'i' => self.match_keyword(1, String::from("f"), TokenType::If),
+                'n' => self.match_keyword(1, String::from("ull"), TokenType::Null),
+                'r' => self.match_keyword(1, String::from("eturn"), TokenType::Return),
+                's' => self.match_keyword(1, String::from("uper"), TokenType::Super),
+                'w' => self.match_keyword(1, String::from("hile"), TokenType::While),
                 'f' => {
-                    if (self.current as i32) - (self.start as i32) > 1 {
-                        match *self.start.add(1) {
-                            'a' => self.match_keyword(2, &mut String::from("lse"), TokenType::False),
-                            'u' => self.match_keyword(2, &mut String::from("n"), TokenType::Fun),
-                            'o' => self.match_keyword(2, &mut String::from("r"), TokenType::For),
+                    if self.current_index - self.start_index > 1 {
+                        match self.source.chars().nth(self.start_index + 1).unwrap() {
+                            'a' => self.match_keyword(2, String::from("lse"), TokenType::False),
+                            'u' => self.match_keyword(2, String::from("n"), TokenType::Fun),
+                            'o' => self.match_keyword(2, String::from("r"), TokenType::For),
                             _ => TokenType::Identifier
                         }
                     } else {
@@ -225,10 +225,10 @@ impl Scanner {
                     }
                 }
                 'v' => {
-                    if (self.current as i32) - (self.start as i32) > 2 {
-                        match *self.start.add(1) {
+                    if self.current_index - self.start_index > 2 {
+                        match self.source.chars().nth(self.start_index + 1).unwrap() {
                             'a' => {
-                                match *self.start.add(2) {
+                                match self.source.chars().nth(self.start_index + 2).unwrap() {
                                     'r' => TokenType::Var,
                                     'l' => TokenType::Val,
                                     _ => TokenType::Identifier
@@ -245,12 +245,12 @@ impl Scanner {
         }
     }
 
-    pub fn match_keyword(&self, start: usize, rest: &mut String, return_type: TokenType) -> TokenType {
-        unsafe {
-            if ((self.current as i32) - (self.start as i32)) as usize == start + rest.len() && memcmp(((self.start as usize) + start) as *mut u8 as *const libc::c_void, rest.as_mut_ptr() as *const libc::c_void, rest.len()) == 0 {
-                return return_type
-            }
-            return TokenType::Identifier
+    pub fn match_keyword(&self, start_index: usize, rest: String, return_type: TokenType) -> TokenType {
+        if self.current_index - self.start_index == start_index + rest.len() &&
+            self.source[(self.start_index + start_index)..(self.start_index + start_index + rest.len())] == rest {
+            return_type
+        } else {
+            TokenType::Identifier
         }
     }
 }

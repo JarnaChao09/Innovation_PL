@@ -2,12 +2,11 @@ use std::borrow::Borrow;
 
 pub struct Token {
     pub token_type: TokenType,
-    pub start: *const char,
-    pub length: usize,
+    pub lexme: String,
     pub line: i32
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum TokenType {
     LeftParen, RightParen,
     LeftBrace, RightBrace,
@@ -53,11 +52,10 @@ pub enum TokenType {
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, start: *const char, length: usize, line: i32) -> Token {
+    pub fn new(token_type: TokenType, lexme: String, line: i32) -> Token {
         Token {
             token_type,
-            start,
-            length,
+            lexme,
             line,
         }
     }
