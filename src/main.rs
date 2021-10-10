@@ -27,7 +27,7 @@ fn repl(vm: &mut language::vm::VM) {
         print!(">> ");
         std::io::stdout().flush().expect("flush failed!");
 
-        let mut line: String = read!("{}\n");
+        let line: String = read!("{}\n");
 
         match line.as_ref() {
             "exit" => {

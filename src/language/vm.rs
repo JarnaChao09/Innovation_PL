@@ -5,6 +5,7 @@ use super::value::*;
 use super::debug::*;
 use super::scanner::*;
 use super::token::*;
+use super::parser::*;
 use rawpointer::PointerExt;
 
 const STACK_LIMIT: usize = 256;
@@ -40,28 +41,40 @@ impl VM {
     }
 
     pub fn interpret(&mut self, source: String) -> InterpreterResult {
-        self.compile(source);
-        InterpreterResult::Ok
+        let mut chunk = Chunk::new();
+        self.compile(source, &mut chunk);
+
+        self.chunk = chunk;
+        self.ip = self.chunk.code.as_mut_ptr();
+
+        self.run()
     }
 
-    pub fn compile(&mut self, source: String) {
+    pub fn compile(&mut self, source: String, chunk: &mut Chunk) -> bool {
         let mut scanner = Scanner::new(source);
-        let mut line = -1;
-        loop {
-            let token: Token = scanner.scan_token();
-            if token.line != line {
-                print!("{:4} ", token.line);
-                line = token.line;
-            } else {
-                print!("   | ");
-            }
-            println!("{:?} '{}'", token.token_type, token.lexme);
+        let mut parser = Parser::new();
 
-            if token.token_type == TokenType::EOF {
-                break;
-            }
-        }
+        !parser.had_error
     }
+
+    // pub fn compile(&mut self, source: String) {
+    //     let mut scanner = Scanner::new(source);
+    //     let mut line = -1;
+    //     loop {
+    //         let token: Token = scanner.scan_token();
+    //         if token.line != line {
+    //             print!("{:4} ", token.line);
+    //             line = token.line;
+    //         } else {
+    //             print!("   | ");
+    //         }
+    //         println!("{:?} '{}'", token.token_type, token.lexme);
+    //
+    //         if token.token_type == TokenType::EOF {
+    //             break;
+    //         }
+    //     }
+    // }
 
     // pub fn interpret(&mut self, chunk: Chunk) -> InterpreterResult {
     //     self.chunk = chunk;

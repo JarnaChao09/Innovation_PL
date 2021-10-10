@@ -1,4 +1,3 @@
-use rawpointer::PointerExt;
 use super::token::*;
 
 pub struct Scanner {
@@ -19,73 +18,71 @@ impl Scanner {
     }
 
     pub fn scan_token(&mut self) -> Token {
-        unsafe {
-            self.skip_whitespace();
-            self.start_index = self.current_index;
-            if self.is_at_end() {
-                return Token::new(TokenType::EOF, String::from(""), self.line);
+        self.skip_whitespace();
+        self.start_index = self.current_index;
+        if self.is_at_end() {
+            return Token::new(TokenType::EOF, String::from(""), self.line);
+        }
+
+        let char = self.advance();
+
+        match char {
+            '0'..='9' => self.make_number(),
+            'a'..='z' | 'A'..='Z' => self.make_identifier(),
+            '(' => self.make_token(TokenType::LeftParen),
+            ')' => self.make_token(TokenType::RightParen),
+            '{' => self.make_token(TokenType::LeftBrace),
+            '}' => self.make_token(TokenType::RightBrace),
+            '[' => self.make_token(TokenType::LeftBracket),
+            ']' => self.make_token(TokenType::RightBracket),
+            ';' => self.make_token(TokenType::Semicolon),
+            '\n' => {
+                self.line += 1;
+                self.make_token(TokenType::Semicolon)
             }
-
-            let char = self.advance();
-
-            match char {
-                '0'..='9' => self.make_number(),
-                'a'..='z' | 'A'..='Z' => self.make_identifier(),
-                '(' => self.make_token(TokenType::LeftParen),
-                ')' => self.make_token(TokenType::RightParen),
-                '{' => self.make_token(TokenType::LeftBrace),
-                '}' => self.make_token(TokenType::RightBrace),
-                '[' => self.make_token(TokenType::LeftBracket),
-                ']' => self.make_token(TokenType::RightBracket),
-                ';' => self.make_token(TokenType::Semicolon),
-                '\n' => {
-                    self.line += 1;
-                    self.make_token(TokenType::Semicolon)
-                }
-                '.' => self.make_token(TokenType::Dot),
-                ',' => self.make_token(TokenType::Comma),
-                '+' => self.make_token(TokenType::Plus),
-                '-' => self.make_token(TokenType::Minus),
-                '*' => self.make_token(TokenType::Star),
-                '/' => self.make_token(TokenType::Slash),
-                '!' => {
-                    let token = if self.match_char('=') {
-                        TokenType::BangEq
-                    } else {
-                        TokenType::Bang
-                    };
-                    self.make_token(token)
-                }
-                '=' => {
-                    let token= if self.match_char('=') {
-                        TokenType::EqEq
-                    } else {
-                        TokenType::EQ
-                    };
-                    self.make_token(token)
-                },
-                '<' => {
-                    let token= if self.match_char('=') {
-                        TokenType::Le
-                    } else {
-                        TokenType::Lt
-                    };
-                    self.make_token(token)
-                },
-                '>' => {
-                    let token = if self.match_char('=') {
-                        TokenType::Ge
-                    } else {
-                        TokenType::Gt
-                    };
-                    self.make_token(token)
-                },
-                '"' => self.make_string(),
-                err_char => {
-                    let mut msg = String::from("Unexpected character: ");
-                    msg.push(err_char);
-                    self.error_token(msg)
-                }
+            '.' => self.make_token(TokenType::Dot),
+            ',' => self.make_token(TokenType::Comma),
+            '+' => self.make_token(TokenType::Plus),
+            '-' => self.make_token(TokenType::Minus),
+            '*' => self.make_token(TokenType::Star),
+            '/' => self.make_token(TokenType::Slash),
+            '!' => {
+                let token = if self.match_char('=') {
+                    TokenType::BangEq
+                } else {
+                    TokenType::Bang
+                };
+                self.make_token(token)
+            }
+            '=' => {
+                let token= if self.match_char('=') {
+                    TokenType::EqEq
+                } else {
+                    TokenType::EQ
+                };
+                self.make_token(token)
+            },
+            '<' => {
+                let token= if self.match_char('=') {
+                    TokenType::Le
+                } else {
+                    TokenType::Lt
+                };
+                self.make_token(token)
+            },
+            '>' => {
+                let token = if self.match_char('=') {
+                    TokenType::Ge
+                } else {
+                    TokenType::Gt
+                };
+                self.make_token(token)
+            },
+            '"' => self.make_string(),
+            err_char => {
+                let mut msg = String::from("Unexpected character: ");
+                msg.push(err_char);
+                self.error_token(msg)
             }
         }
     }
