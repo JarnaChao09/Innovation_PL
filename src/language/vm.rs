@@ -43,17 +43,24 @@ impl VM {
     pub fn interpret(&mut self, source: String) -> InterpreterResult {
         let mut chunk = Chunk::new();
         self.compile(source, &mut chunk);
+        // self.compile(source);
+        InterpreterResult::Ok
 
-        self.chunk = chunk;
-        self.ip = self.chunk.code.as_mut_ptr();
-
-        self.run()
+        // self.chunk = chunk;
+        // self.ip = self.chunk.code.as_mut_ptr();
+        //
+        // self.run()
     }
 
     pub fn compile(&mut self, source: String, chunk: &mut Chunk) -> bool {
         let mut scanner = Scanner::new(source);
         let mut parser = Parser::new();
 
+        parser.advance(&mut scanner);
+        parser.expression(&mut scanner, chunk);
+        parser.consume(&mut scanner, TokenType::EOF, String::from("Expect end of expression."));
+
+        parser.end_compiler(chunk);
         !parser.had_error
     }
 
